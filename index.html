@@ -6,10 +6,33 @@
   <style>
     body { font-family: Arial; padding: 20px; }
     table { border-collapse: collapse; width: 100%; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; position: relative; }
     th { background: #f4f4f4; }
     textarea { width: 100%; }
     button { margin: 10px 5px; padding: 10px 15px; }
+
+    .tooltip {
+      visibility: hidden;
+      width: 260px;
+      background-color: #333;
+      color: #fff;
+      text-align: left;
+      padding: 8px;
+      border-radius: 6px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      transform: translateX(-50%);
+      opacity: 0;
+      transition: opacity 0.2s;
+      font-size: 12px;
+    }
+
+    .tooltip-cell:hover .tooltip {
+      visibility: visible;
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
@@ -28,35 +51,70 @@
   </tr>
 </table>
 
-<button onclick="generateReport()">Genereer Rapport (voor WhatsApp)</button>
+<button onclick="generateReport()">Genereer Rapport (WhatsApp)</button>
 <button onclick="clearForm()">Wis formulier</button>
 
 <textarea id="output" rows="10" placeholder="Hier verschijnt de tekst..."></textarea>
 
 <script>
-const criteria = [
-  "Contact maken",
-  "Informatie geven",
-  "Informatie verzamelen",
-  "Volledigheid informatie",
-  "Probleemanalyse",
-  "Dossiervorming",
-  "Gesprek afronden",
-  "Slachtoffergericht handelen",
-  "Professioneel handelen"
+const rubric = [
+  {
+    name: "Contact maken",
+    levels: [
+      "Maakt geen contact, geen empathie zichtbaar",
+      "Beperkt contact, reageert weinig op emoties",
+      "Maakt basiscontact en toont enige empathie",
+      "Toont actief empathie en stelt klant op gemak",
+      "Sluit volledig aan, creëert vertrouwen en veiligheid"
+    ]
+  },
+  {
+    name: "Informatie verzamelen",
+    levels: [
+      "Stelt geen gerichte vragen, laat verhaal niet lopen",
+      "Stelt enkele vragen maar mist structuur",
+      "Stelt basisvragen (7W’s) en luistert voldoende",
+      "Stelt open vragen, vraagt door en vat samen",
+      "Stuurt gesprek professioneel, verdiept en structureert volledig"
+    ]
+  },
+  {
+    name: "Probleemanalyse",
+    levels: [
+      "Geen duidelijk beeld van situatie of strafbaar feit",
+      "Beperkt inzicht, onduidelijke analyse",
+      "Basis analyse aanwezig",
+      "Logische en correcte analyse met juiste koppelingen",
+      "Diepgaande analyse met volledig juridisch inzicht"
+    ]
+  },
+  {
+    name: "Gesprek afronden",
+    levels: [
+      "Geen afronding",
+      "Onvolledige afronding",
+      "Vat samen en benoemt vervolg globaal",
+      "Duidelijke afronding en controleert begrip",
+      "Zeer volledig, afgestemd en professioneel afgerond"
+    ]
+  }
 ];
 
 const table = document.getElementById("rubricTable");
 
-criteria.forEach((c, i) => {
+rubric.forEach((crit, i) => {
   let row = table.insertRow();
   let cell = row.insertCell(0);
-  cell.innerText = c;
+  cell.innerText = crit.name;
 
-  for (let j = 1; j <= 5; j++) {
-    let scoreCell = row.insertCell(j);
-    scoreCell.innerHTML = `<input type="radio" name="crit${i}" value="${j}">`;
-  }
+  crit.levels.forEach((desc, j) => {
+    let scoreCell = row.insertCell(j+1);
+    scoreCell.classList.add("tooltip-cell");
+    scoreCell.innerHTML = `
+      <input type="radio" name="crit${i}" value="${j+1}">
+      <div class="tooltip">${desc}</div>
+    `;
+  });
 
   let feedbackCell = row.insertCell(6);
   feedbackCell.innerHTML = `<textarea id="fb${i}" rows="2"></textarea>`;
@@ -65,11 +123,13 @@ criteria.forEach((c, i) => {
 function generateReport() {
   let text = "Beoordeling gesprek aangifte:%0A%0A";
 
-  criteria.forEach((c, i) => {
+  rubric.forEach((crit, i) => {
     let score = document.querySelector(`input[name=crit${i}]:checked`);
     let fb = document.getElementById(`fb${i}`).value;
 
-    text += `${c}: ${score ? score.value : "-"}%0AFeedback: ${fb}%0A%0A`;
+    let desc = score ? rubric[i].levels[score.value - 1] : "-";
+
+    text += `${crit.name}: ${score ? score.value : "-"}%0A${desc}%0AFeedback: ${fb}%0A%0A`;
   });
 
   document.getElementById("output").value = decodeURIComponent(text);
